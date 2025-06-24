@@ -75,3 +75,6 @@ const ticketSlice = createSlice({
 
     },
 });
+
+export const { rest } = ticketSlice.actions;
+export default ticketSlice.reducer
