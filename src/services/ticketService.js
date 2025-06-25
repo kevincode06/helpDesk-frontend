@@ -29,7 +29,7 @@ const getTicket = async (id, token) => {
     return res.data.data;
 };
 
-// updaate ticket 
+// update ticket 
 
 const updateTicket =  async (id, data, token) => {
     const res = await axios.get(API_URL + id, data, {
