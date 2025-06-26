@@ -3,11 +3,14 @@ import { Provider } from 'react-redux';
 import { store } from './redux/store';
 
 
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import TicketPage from './pages/TicketPage';
 import AdminPage from './pages/AdminPage';
+import AdminRoute from './components/AdminRoute';
+import LandingPage from './pages/LandingPage';
+import Navbar from './components/Navbar';
 
 
 // block if login doest have token
@@ -16,19 +19,14 @@ function PrivateRoute({ children }) {
   return token ? children : <Navigate to="/login" />
 }
 
-// admin can access
-function adminRoute({ children }) {
-  const user = JSON.parse(atob(localStorage.getItem('token')?.split('.') [1]|| '{}'));
-  return user?.role === 'admin' ? children : <Navigate to="/dashboard" />;
-}
-
-
 function App() {
   return (
     <Provider store={store}>
       <Router>
+        <Navbar/> {/* <-- Renders the navbar on every page */}
         <Routes>
           {/* Public */}
+          <Route path='/' element={<LandingPage />}/>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
@@ -40,10 +38,14 @@ function App() {
           <Route path="/admin" element={<PrivateRoute><AdminRoute><AdminPage/></AdminRoute></PrivateRoute> }/>
 
           {/* fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          <Route path="*" element={<Navigate to="/" />} />
+
+
 
         </Routes>
       </Router>
     </Provider>
   );
 }
+
+export default App;

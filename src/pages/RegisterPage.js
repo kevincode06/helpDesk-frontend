@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { userDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../redux/authSlice';
 import { Navigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -7,15 +7,15 @@ import { toast } from 'react-toastify';
 
 function RegisterPage() {
     const [form, setForm] = useState({ name: '', email: '', password: '' });
-    const dispatch = userDispatch();
+    const dispatch = useDispatch();
     const { token, loading, error } = useSelector((s) => s.auth);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        dispatch(register({ ... form, role: 'user' }))
+        dispatch(register({ ...form, role: 'user' }))
         .unwrap()
         .then(() => toast.success('Registered successfully '))
-        .catch(toast.error);
+        .catch((err) => toast.error(err.message || 'Something went wrong'));
     };
 
 
@@ -26,12 +26,12 @@ function RegisterPage() {
         <h2>Register</h2>
         <form onSubmit={handleSubmit}>
             <input placeholder="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value })} required />
-            <input type="email" placeholder="Email" value={form.password} onChange={e => setForm({ ...form, email: e.target.value})} required />
-            <input type="password" placeholder="Password" value={form.password} onChange={e => setPassword({...form, password: e.target.value})} required />
+            <input type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value})} required />
+            <input type="password" placeholder="Password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required />
             <button disabled={loading}>{loading ? 'Loading...' : 'Register'}</button>
         </form>
         {error && <p style={{ color: 'Red'}}>{error}</p>} {/* Show error */}
-        <p>No account? <Link to="/register">Register</Link></p>
+        <p>Already have an account? <Link to="/login">Login</Link></p>
         </div>
     );
 }

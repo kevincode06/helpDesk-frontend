@@ -1,22 +1,22 @@
-import { userState } from 'react';
-import { userDispatch, useSelector } from 'react-redux';
+import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../redux/authSlice';
 import { Navigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 function LoginPage() {
-    const [email, setEmail] = userState('');
-    const [password, setPassword] = userState('');
-    const dispatch = userDispatch();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const dispatch = useDispatch();
     
-    const { token, loading, error } = useSelector((s) = s.auth);
+    const { token, loading, error } = useSelector((s) => s.auth);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        dispatch(login({ email, password}))
+        dispatch(login({ email, password }))
         .unwrap()
         .then(() => toast.success('Logged in'))
-        .catch(toast.error);
+        .catch((err) => toast.error(err.message || 'Something went wrong'));
     };
 
     if (token) return <Navigate to="/dashboard" />

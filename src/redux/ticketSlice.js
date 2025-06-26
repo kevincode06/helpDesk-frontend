@@ -3,12 +3,19 @@ import ticketService from '../services/ticketService';
 
 // 
 
-const initialSlate = {
+const initialState = {
     tickets: [],
     ticket: null,
     loading: false,
     error: null,
 };
+
+
+
+export const getTicket = createAsyncThunk('ticket/get', async (id, thunkAPI) => {
+    const token = thunkAPI.getState().auth.token; 
+    return ticketService.getTicket(id, token);
+});
 
 // create a ticket 
 
@@ -37,7 +44,7 @@ const ticketSlice = createSlice({
     name: 'tickets',
     initialState,
     reducers: {
-        rest: () => initialSlate, 
+        rest: () => initialState, 
     },
     extraReducers: (builder) => {
         builder
@@ -51,11 +58,7 @@ const ticketSlice = createSlice({
             state.error = action.payload;
         })
 
-        .addCase(createTicket.pending, (state) => { state.loading = true; })
-        .addCase(closeTicket.fulfilled, (state, action) => {
-            state.loading = false;
-            state.error = action.payload;
-        })
+
 
         .addCase(getMyTickets.rejected, (state, action) => {
             state.loading = false;
@@ -66,13 +69,22 @@ const ticketSlice = createSlice({
             state.ticket = action.payload;
         }) 
 
-
-        .addCase(closeTickets.fulfilled, (state, action) => {
+        .addCase(getTicket.pending, (state) => {
+            state.loading = true;
+            state.error = null;
+        })
+        .addCase(getTicket.fulfilled, (state, action) => {
+            state.loading = false;
             state.ticket = action.payload;
-        });
-        
+            state.error = null;
+        })
 
+        .addCase(getTicket.rejected, (state, action) => {
+            state.loading = false;
+            state.error = action.payload;
+        })
 
+       
     },
 });
 

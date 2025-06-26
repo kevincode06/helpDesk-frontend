@@ -53,29 +53,31 @@ const authSlice = createSlice({
     extraReducers: (builder) => {
         builder 
         // login 
-        .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
+        .addCase(login.pending, (state) => {
+             state.loading = true; state.error = null;
+             })
         .addCase(login.fulfilled, (state, action) => {
             state.loading = false;
             state.token = action.payload.token;
             localStorage.setItem('token', action.payload.token);
             state.user = JSON.parse(atob(action.payload.token.split('.')[1]));
         })
-        .addCase(login.rejected, (state, action) =>{
-            state.loading = false,
+        .addCase(login.rejected, (state, action) => {
+            state.loading = false;
             state.error = action.payload;
         })
 
         // register 
 
-        .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
-        .addCase(login.fulfilled, (state, action) => {
+        .addCase(register.pending, (state) => { state.loading = true; state.error = null; })
+        .addCase(register.fulfilled, (state, action) => {
             state.loading = false;
             state.token = action.payload.token;
             localStorage.setItem('token', action.payload.token);
             state.user = JSON.parse(atob(action.payload.token.split('.')[1]));
         })
-        .addCase(login.rejected, (state, action) =>{
-            state.loading = false,
+        .addCase(register.rejected, (state, action) =>{
+            state.loading = false;
             state.error = action.payload;
         });
 

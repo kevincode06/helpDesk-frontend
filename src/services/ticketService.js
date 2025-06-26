@@ -38,4 +38,6 @@ const updateTicket =  async (id, data, token) => {
     return res.data.data;
 }
 
-export default { createTicket, getMyTickets, getTicket, updateTicket };
+const ticketService = { createTicket, getMyTickets, getTicket, updateTicket };
+
+export default ticketService

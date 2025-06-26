@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { userDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { getMyTickets } from '../redux/ticketSlice';
 import { Link } from 'react-router-dom';   
 
 
 function DashboardPage() {
-    const dispatch = userDispatch();
+    const dispatch = useDispatch();
     const { tickets, loading } = useSelector((s) => s.tickets);
 
     useEffect(() => {
