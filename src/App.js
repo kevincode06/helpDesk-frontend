@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { Provider, useSelector } from 'react-redux';
 import { store } from './redux/store';
 
 
@@ -8,20 +8,54 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import TicketPage from './pages/TicketPage';
 import AdminPage from './pages/AdminPage';
-import AdminRoute from './components/AdminRoute';
 import LandingPage from './pages/LandingPage';
 import Navbar from './components/Navbar';
 
 
 // block if login doest have token
 function PrivateRoute({ children }) {
-  const token = localStorage.getItem('token'); 
-  return token ? children : <Navigate to="/login" />
+  const { token, user } = useSelector((state) => state.auth);
+
+
+  console.log('PrivateRoute check:', {
+    hasToken : !!token,
+    user: user,
+    userRole: user?.role
+
+  });
+
+  return token? children : <Navigate to="/login" />;
 }
 
-function App() {
+function AdminRoute({ children }) {
+  const { user } = useSelector((state) => state.auth);
+
+
+  console.log('AdminRoute check:', {
+    user: user,
+    userRole: user?.role,
+    isAdmin: user?.role === 'admin'
+  });
+
+if (user?.role !== 'admin') {
+  console.log('Access denied - not admin. Redirecting to dashboard');
+  return <Navigate to="/dashboard" />;
+}
+return children;
+}
+
+function AppRoutes() {
+  const { token, user} = useSelector((state) => state.auth);
+
+  console.log('App render - Auth state:', {
+    hasToken: !!token,
+    user: user,
+    userRole: user?.role
+  }); 
+
+
+
   return (
-    <Provider store={store}>
       <Router>
         <Navbar/> {/* <-- Renders the navbar on every page */}
         <Routes>
@@ -44,7 +78,14 @@ function App() {
 
         </Routes>
       </Router>
-    </Provider>
+  );
+}
+
+function App() {
+  return (
+    <Provider store={store}>
+      <AppRoutes/>
+      </Provider>
   );
 }
 

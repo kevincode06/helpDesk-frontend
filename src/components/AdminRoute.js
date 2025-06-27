@@ -1,23 +1,37 @@
-// src/routes/AdminRoute.js
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
-// Example: assume the token is stored in localStorage and contains user role info
 const AdminRoute = ({ children }) => {
-  const user = JSON.parse(localStorage.getItem('user'));
+  const { token, user } = useSelector((state) => state.auth);
 
-  // If not logged in
-  if (!user || !user.token) {
+
+  console.log('=== ADMIN ROUTE CHECK ===');
+  console.log('Token exists:', !!token);
+  console.log('User data:', user);
+  console.log('User role:', user?.role);
+  console.log('Is admin:', user?.role = 'admin');
+
+
+  // no login
+  if (!token || !user) {
+    console.log('Not logged in - redirecting to login');
     return <Navigate to="/login" replace />;
-  }
+   }
 
-  // If not an admin
-  if (user.role !== 'admin') {
-    return <Navigate to="/unauthorized" replace />;
-  }
+   // if not admin 
 
-  // If admin
-  return children;
-};
+   if (user.role !== 'admin') {
+    console.Console(`Access denied - user role is '${user.role}', not 'admin'`);
+    return <Navigate to="/dashboard" replace />;
+   }
+
+   // if admin access
+
+   console.log('Admin access granted!');
+   return children;
+
+}; 
+
 
 export default AdminRoute;

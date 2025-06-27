@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../redux/authSlice';
-import { Navigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     
-    const { token, loading, error } = useSelector((s) => s.auth);
+    const { token, user, loading, error } = useSelector((s) => s.auth);
+
+
+    // DEBUG LOGS - ADD THESE TO SEE WHAT'S IN YOUR TOKEN
+   console.log('Token:', token);
+   console.log('User:', user);
+
+   useEffect (() => {
+    if (token && user) {
+        if (user.role === 'admin') {
+            navigate('/admin');
+        } else {
+            navigate('/dashboard');
+        }
+    }
+
+   }, [token, user, navigate]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -18,8 +35,6 @@ function LoginPage() {
         .then(() => toast.success('Logged in'))
         .catch((err) => toast.error(err.message || 'Something went wrong'));
     };
-
-    if (token) return <Navigate to="/dashboard" />
 
     return (
         <div className="login-page">
