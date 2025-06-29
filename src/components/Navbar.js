@@ -1,17 +1,13 @@
 import React  from "react";
-import { Link, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from "react-redux";
-import { logout as logoutAction } from "../redux/authSlice";
+import { Link } from 'react-router-dom';
+import { useSelector } from "react-redux";
+
 
 const Navbar = () => {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
+
     const { token, user } = useSelector((state) => state.auth);
 
-    const logout = () => {
-        dispatch(logoutAction());
-        navigate('/login');
-    };
+    
 
     return (
         <nav style={{ padding: '1em', backgroundColor: '#eee'  }}>
@@ -22,7 +18,7 @@ const Navbar = () => {
                 {user && user.role === 'admin' && (
                      <Link to="/admin" style={{ marginLeft: '1em' }}>Admin</Link>
                 )}
-                <button style={{float: 'right' }} onClick={logout}>Logout</button>
+                
                 </>
 ) : (
 

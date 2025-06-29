@@ -1,8 +1,7 @@
-import React, {useState, useEffect } from 'react';
+import React, {useState, useEffect, } from 'react';
 import { useSelector,useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout} from '../redux/authSlice';
-import { useCallback } from 'react';
 import './AdminPage.css';
 
 
@@ -25,17 +24,20 @@ const AdminPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [selectedTicket, setSelectedTicket] = useState(null);
     
+
 
     useEffect(() => {
         fetchDashboardData();
-    }, []);
+    }, [fetchDashboardData]);
 
+    
     useEffect (() => {
         if (tickets.length > 0 || users.length > 0) {
             calculateStatsFromData();
         }
-    }, [tickets, users, calculateStatsFromData]);
+    }, [tickets, users,]);
 
     const fetchDashboardData = async () => {
         try {
@@ -135,9 +137,9 @@ const calculateStatsFromData = () => {
         resolvedTickets,
         totalUsers
     });
-};
+}; 
 
-
+//[tickets, users, setStats]
 const handleTicketStatusUpdate = async (ticketId, newStatus) => {
     try {
         const response = await fetch(`http://localhost:5000/api/v1/admin/tickets/${ticketId}/status`, {
