@@ -1,4 +1,4 @@
-import React, {useState, useEffect, } from 'react';
+import React, {useState, useEffect, useCallback } from 'react';
 import { useSelector,useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout} from '../redux/authSlice';
@@ -24,37 +24,37 @@ const AdminPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [selectedTicket, setSelectedTicket] = useState(null);
+   
     
 
+    const calculateStatsFromData = useCallback(() => {
+        const totalTickets = tickets.length;
+        const openTickets = tickets.filter(t => t.status === 'open').length;
+        const inProgressTickets = tickets.filter(t => t.status === 'in-progress').length;
+        const resolvedTickets = tickets.filter(t => t.status === 'resolved').length;
+        const totalUsers = users.length;
+    
+    
+        setStats({
+            totalTickets,
+            openTickets,
+            inProgressTickets,
+            resolvedTickets,
+            totalUsers
+        });
+    }, [tickets, users]); 
 
-    useEffect(() => {
-        fetchDashboardData();
-    }, [fetchDashboardData]);
-
+   
     
     useEffect (() => {
         if (tickets.length > 0 || users.length > 0) {
             calculateStatsFromData();
         }
-    }, [tickets, users,]);
+    }, [tickets, users, calculateStatsFromData]);
 
-    const fetchDashboardData = async () => {
-        try {
-            setLoading(true);
-            await Promise.all([
-                fetchAllTickets(),
-                fetchAllUsers(),
-                fetchStats()           
-            ]);
-        } catch (err) {
-            setError('Failed to load dashboard data');
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    const fetchAllTickets = async () => {
+
+    const fetchAllTickets = useCallback(async () => {
         try {
             const response = await fetch(`http://localhost:5000/api/v1/admin/tickets`, {
                 headers : {
@@ -74,10 +74,9 @@ const AdminPage = () => {
         setError('Failed to fetch tickets');
     }
     
-    };
+    }, [token]); 
 
-
-    const fetchAllUsers = async () => {
+    const fetchAllUsers = useCallback(async () => {
         try {
             const response = await fetch(`http://localhost:5000/api/v1/admin/users`, {
                 headers : {
@@ -96,10 +95,10 @@ const AdminPage = () => {
     console.error('Error fetching users:', err);
     setError('Failed to fetch users');
 }
-};
+}, [token]);
 
 
-const fetchStats = async () => {
+const fetchStats = useCallback(async () => {
     try {
         const response = await fetch(`http://localhost:5000/api/v1/admin/stats`, {
             headers : {
@@ -112,32 +111,37 @@ const fetchStats = async () => {
         const data = await response.json();
         setStats(data);
     } else {
-        calculateStatsFromData();
-    }
+        throw new Error('Failed to fetch stats');
+    } 
     } catch (err) {
         console.error('Error fetching stats:', err);
-        calculateStatsFromData();
+        setError('Failed to fetch stats');
     }
 
-}
+}, [token]);
 
 
-const calculateStatsFromData = () => {
-    const totalTickets = tickets.length;
-    const openTickets = tickets.filter(t => t.status === 'open').length;
-    const inProgressTickets = tickets.filter(t => t.status === 'in-progress').length;
-    const resolvedTickets = tickets.filter(t => t.status === 'resolved').length;
-    const totalUsers = users.length;
+    const fetchDashboardData =  useCallback(async() => {
+        try {
+            setLoading(true);
+            await Promise.all([
+                fetchAllTickets(),
+                fetchAllUsers(),
+                fetchStats()           
+            ]);
+        } catch (err) {
+            setError('Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchAllTickets, fetchAllUsers, fetchStats]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
 
 
-    setStats({
-        totalTickets,
-        openTickets,
-        inProgressTickets,
-        resolvedTickets,
-        totalUsers
-    });
-}; 
+
 
 //[tickets, users, setStats]
 const handleTicketStatusUpdate = async (ticketId, newStatus) => {
