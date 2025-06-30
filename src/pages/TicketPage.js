@@ -194,7 +194,7 @@ const TicketPage = () => {
                             </select>
                         </div>
                     )}
-                </div>
+                </div> 
             </div>
 
             <div className="ticket-content">

@@ -20,7 +20,7 @@ function LoginPage() {
    useEffect (() => {
     if (token && user) {
         if (user.role === 'admin') {
-            navigate('/admin');
+            navigate('/admin'); 
         } else {
             navigate('/dashboard');
         }

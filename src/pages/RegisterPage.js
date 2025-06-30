@@ -20,7 +20,7 @@ function RegisterPage() {
 
 
     if (token) return <Navigate to="/dashboard" />
-
+ 
     return (
         <div className="Register-page">
         <h2>Register</h2>

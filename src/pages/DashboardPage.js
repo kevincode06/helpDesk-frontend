@@ -195,7 +195,7 @@ const DashboardPage = () => {
                             <p>Create your first support ticket to get started.</p>
                         </div>
                     ) : (
-
+ 
                         tickets.map ((ticket) => ( 
                             <div key={ticket._id || ticket.id} className="ticket-card">
                                 <div className="ticket-header">
