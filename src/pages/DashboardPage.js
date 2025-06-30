@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from "../redux/authSlice";
-import'./DashboardPage.css';
+import './DashboardPage.css';
 
 const DashboardPage = () => {
     const { user, token } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const [tickets, setTickets] = useState([]);
+    const [tickets, setTickets] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -20,30 +20,36 @@ const DashboardPage = () => {
     });
 
     // fetch user's tickets
-
     useEffect(() => {
-    const fetchUserTickets = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch('http://localhost:5000/api/v1/tickets/my-tickets', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-            });
+        const fetchUserTickets = async () => {
+            try {
+                setLoading(true);
+                console.log('Fetching tickets with token:', token ? 'Token present' : 'No token');
+                
+                const response = await fetch('http://localhost:5000/api/v1/tickets/my-tickets', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                });
 
-            if (response.ok) {
-                const data = await response.json();
-                setTickets(Array.isArray(data.tickets) ? data.tickets : []);
-            } else {
-                setError('Failed to fetch tickets');
+                console.log('Fetch tickets response status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Fetched tickets data:', data);
+                    setTickets(Array.isArray(data.tickets) ? data.tickets : []);
+                } else {
+                    console.error('Failed to fetch tickets, status:', response.status);
+                    setError('Failed to fetch tickets');
+                }
+            } catch (err) {
+                console.error('Error fetching tickets:', err);
+                setError('Error fetching tickets: ' + err.message);
+            } finally {
+                setLoading(false);
             }
-        } catch (err) {
-            setError('Error fetching tickets: ' + err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
         fetchUserTickets();
     }, [token]);
 
@@ -51,25 +57,42 @@ const DashboardPage = () => {
         e.preventDefault();
 
         try {
+            console.log('Using token:', token ? 'Token present' : 'No token');
+            console.log('Creating ticket:', newTicket);
+            
             const response = await fetch('http://localhost:5000/api/v1/tickets', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
-                }, body: JSON.stringify(newTicket)
-                });
+                }, 
+                body: JSON.stringify(newTicket)
+            });
 
-                if (response.ok) {
-                    const createdTicket = await response.json();
-                    setTickets([createdTicket.ticket || createdTicket, ...tickets]);
-                    setNewTicket({ title: '', description: '', priority: 'medium' });
-                    setShowCreateForm(false);
-                } else {
-                    const errorData = await response.json();
-                    setError(errorData.message || 'Failed to create ');
-                } 
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
+            if (response.ok) {
+                const responseData = await response.json();
+                console.log('Full response data:', responseData);
+                
+                const createdTicket = responseData.ticket || responseData.data || responseData;
+                console.log('Created ticket:', createdTicket);
+                
+                setTickets([createdTicket, ...(tickets || [])]);
+                setNewTicket({ title: '', description: '', priority: 'medium' });
+                setShowCreateForm(false);
+                setError(null); // Clear previous errors
+                
+                console.log('Ticket created successfully!');
+            } else {
+                const errorData = await response.json();
+                console.error('Error response:', errorData);
+                setError(errorData.message || `Failed to create ticket (Status: ${response.status})`);
+            } 
         } catch (err) {
-            setError('Error creating ticket: ' + err.message);
+            console.error('Network/Fetch error:', err);
+            setError('Network error creating ticket: ' + err.message);
         }
     };
 
@@ -87,7 +110,6 @@ const DashboardPage = () => {
         }
     };
 
-
     const getStatusColor = (status) => {
         switch (status) {
             case 'open': return '#3742fa';
@@ -100,7 +122,7 @@ const DashboardPage = () => {
 
     if (loading) {
         return (
-            <div className="'dashboard-container">
+            <div className="dashboard-container">
                 <div className="loading">loading your tickets...</div>
             </div>
         );
@@ -111,13 +133,13 @@ const DashboardPage = () => {
             <div className="dashboard-header">
                 <div className="user-info">
                     <h1>Welcome back, {user?.name}!</h1>
-                    <p>Manager your support tickets</p>
+                    <p>Manage your support tickets</p>
                 </div>
                 <div className="header-action">
                     {user?.role === 'admin' && (
                         <Link to="/admin" className="btn btn-admin">Admin Dashboard</Link>
                     )}
-                    <button onClick={handleLogout} className="btn btn logout">Logout</button>
+                    <button onClick={handleLogout} className="btn btn-logout">Logout</button>
                 </div>
             </div>
             {error && (
@@ -129,8 +151,10 @@ const DashboardPage = () => {
 
             <div className="dashboard-container">
                 <div className="tickets-section">
-                    <h2>My Tickets ({tickets.length})</h2>
-                    <button onClick={() =>setShowCreateForm(!showCreateForm)} className="btn btn-primary"> {showCreateForm ? 'Cancel' : ' +New Ticket'}</button>
+                    <h2>My Tickets ({tickets?.length || 0})</h2>
+                    <button onClick={() => setShowCreateForm(!showCreateForm)} className="btn btn-primary">
+                        {showCreateForm ? 'Cancel' : ' +New Ticket'}
+                    </button>
                 </div>
                 {showCreateForm && (
                     <div className="create-ticket-form">
@@ -139,33 +163,34 @@ const DashboardPage = () => {
                             <div className="form-group">
                                 <label htmlFor="title">Title</label>
                                 <input 
-                                type="text"
-                                id="title"
-                                value={newTicket.title}
-                                onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
-                                required
-                                placeholder="Brief description of your issue"
+                                    type="text"
+                                    id="title"
+                                    value={newTicket.title}
+                                    onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
+                                    required
+                                    placeholder="Brief description of your issue"
                                 />
                             </div>
 
                             <div className="form-group">
                                 <label htmlFor="description">Description</label>
                                 <textarea 
-                                  id="description"
-                                  value={newTicket.description}
-                                  onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
-                                  required
-                                  rows="4"
-                                  placeholder="Detailed description of your issue"
+                                    id="description"
+                                    value={newTicket.description}
+                                    onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
+                                    required
+                                    rows="4"
+                                    placeholder="Detailed description of your issue"
                                 ></textarea>
                             </div>
 
                             <div className="form-group">
                                 <label htmlFor="priority">Priority</label>
                                 <select 
-                                id="priority"
-                                value={newTicket.priority}
-                                onChange={(e) => setNewTicket({...newTicket, priority: e.target.value})}>
+                                    id="priority"
+                                    value={newTicket.priority}
+                                    onChange={(e) => setNewTicket({...newTicket, priority: e.target.value})}
+                                >
                                     <option value="low">Low</option>
                                     <option value="medium">Medium</option>
                                     <option value="high">High</option>
@@ -177,9 +202,9 @@ const DashboardPage = () => {
                                     Create Ticket
                                 </button>
                                 <button 
-                                type="button"
-                                onClick={() => setShowCreateForm(false)}
-                                className="btn btn-secondary"
+                                    type="button"
+                                    onClick={() => setShowCreateForm(false)}
+                                    className="btn btn-secondary"
                                 >
                                     Cancel
                                 </button>
@@ -189,19 +214,18 @@ const DashboardPage = () => {
                 )}
 
                 <div className="tickets-list">
-                    {tickets.length === 0 ?(
-                        <div className="no-ticket">
-                            <h3>No tickets yet </h3>
+                    {!tickets || tickets.length === 0 ? (
+                        <div className="no-tickets">
+                            <h3>No tickets yet</h3>
                             <p>Create your first support ticket to get started.</p>
                         </div>
                     ) : (
- 
-                        tickets.map ((ticket) => ( 
-                            <div key={ticket._id || ticket.id} className="ticket-card">
+                        tickets.map((ticket, index) => ( 
+                            <div key={ticket._id || ticket.id || index} className="ticket-card">
                                 <div className="ticket-header">
                                     <h3>
                                         <Link to={`/tickets/${ticket._id || ticket.id}`}>
-                                        {ticket.title}
+                                            {ticket.title}
                                         </Link>
                                     </h3>
                                     <div className="ticket-meta">
@@ -219,12 +243,12 @@ const DashboardPage = () => {
                                 </p>
 
                                 <div className="ticket-footer">
-                                <span className="ticket-data">
-                                    created: {new Date(ticket.createdAt || ticket.created_at).toLocaleDateString()}
-                                </span>
-                                <Link to={`/tickets/${ticket._id || ticket.id}`} className="btn btn-small">
-                                View Details
-                                </Link>
+                                    <span className="ticket-date">
+                                        created: {ticket.createdAt || ticket.created_at ? new Date(ticket.createdAt || ticket.created_at).toLocaleDateString() : 'N/A'}
+                                    </span>
+                                    <Link to={`/tickets/${ticket._id || ticket.id}`} className="btn btn-small">
+                                        View Details
+                                    </Link>
                                 </div>
                             </div>
                         ))
@@ -232,6 +256,7 @@ const DashboardPage = () => {
                 </div>
             </div>
         </div>
-);
+    );
 };
-export default DashboardPage; 
+
+export default DashboardPage;
