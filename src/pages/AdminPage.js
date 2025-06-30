@@ -273,35 +273,35 @@ if (loading) {
     );
 }
 
+
+
+
 return (
     <div className="admin-container">
         <div className="admin-header">
             <div className="admin-title">
-                <h1>Admin Dashboard</h1>
+                <h1>Admin Dashboard </h1>
                 <p>Welcome, {user?.name || 'Admin'}</p>
             </div>
             <div className="admin-action">
                 <Link to="/dashboard" className="btn btn-secondary">User Dashboard</Link>
-                <button onClick={handleLogout} className="btn btn-logout">Logout</button>
+                <button onClick={handleLogout} className="btn btn-secondary">Logout</button>
             </div>
         </div>
-        
 
         {error && (
-            <div className="error-message"> {error} 
-            <button onClick={() => setError(null)}>x</button>
+            <div className="error-message">
+                {error}
+                <button onClick={() => setError(null)}>x</button>
             </div>
         )}
 
         <div className="admin-tabs">
             <button className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}>Dashboard</button>
-
-            <button className={`tab ${activeTab === 'tickets' ? 'active' : ''}`}
-            onClick={() => setActiveTab('tickets')}>All Tickets</button>
-
-
-            <button className={`tab ${activeTab === 'users' ? 'active' : ''}`}
+             <button className={`tab ${activeTab === 'tickets' ? 'active' : ''}`}
+            onClick={() => setActiveTab('tickets')}>All tickets</button>
+             <button className={`tab ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}>Users</button>
         </div>
 
@@ -314,7 +314,7 @@ return (
                         <div className="stat-number">{stats.totalTickets}</div>
                     </div>
                     <div className="stat-card">
-                        <h3>Open Tickets</h3>
+                    <h3>Open Tickets</h3>
                     <div className="stat-number" style={{color: '#3442fa'}}>{stats.openTickets}</div>
                     </div>
                     <div className="stat-card">
@@ -327,86 +327,24 @@ return (
                     <div className="stat-number" style={{color: '#2ed573'}}>{stats.resolvedTickets}</div>
                     </div>
                     <div className="stat-card">
-                        <h3>Total Users</h3>
+                    <h3>Total Users</h3>
                     <div className="stat-number">{stats.totalUsers}</div>
                     </div>
                     </div>
-
                     <div className="recent-tickets">
-                        <h2>Recent Tickets</h2>
-                        {tickets.length === 0 ? (
-                            <p>No tickets found.</p>
-                        ) : (
-                            <div className="tickets-table">
-                                {tickets.slice(0, 10).map((ticket) => (
-                                    <div key={ticket._id || ticket.id} className="ticket-row">
-                                        <div className="ticket-info">
-                                            <h4><Link to={`/tickets/${ticket._id || ticket.id}`}>
+                    <h2>Recent Tickets</h2>
+                    {tickets.length === 0 ? (
+                        <p>N0 tickets found</p>
+                    ) : (
+                        <div className="tickets-table">
+                            {tickets.slice(0, 10).map((ticket) => (
+                                <div key={ticket._id || ticket.id} className="ticket-row">
+                                    <div className="ticket-info">
+                                    <h4><Link to={`/tickets/${ticket._id || ticket.id}`}>
                                             {ticket.title || 'Untitled Ticket'}
                                             </Link></h4>
                                             <p>By: {ticket.userName || ticket.user?.name || 'Unknown'}</p>
                                             <p>Created: { formatDate(ticket.createdAt)}</p>
-                                        </div>
-                                        <div className="ticket-meta">
-                                            <span className="priority-badge" style={{backgroundColor: getPriorityColor(ticket.priority)}}> 
-                                                {ticket.priority || 'medium'}
-                                            </span>
-                                            <span className="status-badge" style={{backgroundColor: getStatusColor(ticket.status)}}> 
-                                                {ticket.status || 'open'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-             
-                </div>
-            )}
-            </div>
-    </div>
-
-
-        );
-            {activeTab === 'tickets' && (
-                <div className="tickets-tab">
-                    <div className="tab-header">
-
-                        <h2>All Tickets  ({tickets.length})</h2>
-                        <button onClick={fetchAllTickets} className="btn btn-secondary" disabled={loading}>Refresh</button>
-                    </div>
-/</div>
-            )}
-                    {tickets.length === 0 ? (
-                        <p>No ticket found.</p>
-                    ) : (
-                        <div className="tickets-table">
-                            {tickets.map((ticket) => (
-                                <div key={ticket._id || ticket.id} className="admin-ticket-card">
-                                    <div className="ticket-header">
-                                        <h3>
-                                            <Link to={`/tickets/${ticket._id || tickets.id}`}>
-                                            {ticket.title || 'Untitled Ticket'}</Link>
-                                        </h3>
-                                        <div className="ticket-actions">
-                                            <select value={ticket.status || 'open'}
-                                            onChange={(e) => handleTicketStatusUpdate(ticket._id || ticket.id, e.target.value)}
-                                            className="status-select">
-                                                 <option value="open">Open</option>
-                                    <option value="in-progress">In progress</option>
-                                    <option value="resolved">Resolved</option>
-                                    <option value="close">Closed</option>
-                                            </select>
-                                            <button onClick={() => handleDeleteTicket(ticket._id || ticket.id)}
-                                            className="btn btn-danger btn-sm">
-                                                Delete
-                                            </button>
-                                        </div>
-                                        <div className="ticket-body">
-                                            <p><strong>Description:</strong> {ticket.description || 'No description provided'}</p>
-                                            <p><strong>Created by:</strong> {ticket.userName ||  ticket.user?.name || 'Unknown'}</p>
-                                            <p><strong>Created:</strong> {formatDate(ticket.createdAt)}</p>
-                                            <p><strong>Last Update:</strong> {formatDate(ticket.updatedAt)}</p>
                                     </div>
                                     <div className="ticket-meta">
                                     <span className="priority-badge" style={{backgroundColor: getPriorityColor(ticket.priority)}}> 
@@ -416,19 +354,89 @@ return (
                                                 {ticket.status || 'open'}
                                             </span>
                                     </div>
-                              </div>
-                              
-                        </div>
-                        ))}
-                        </div>
-                    )
-                }
+                                </div>
+                            ))}
+                                </div>
+                             )}
+        </div>
+    </div>
 
-                {activeTab === 'users' && (
-                    <div className="users-tab">
-                        <div className="tab-header">
-                            <h2>All Users ({users.length})</h2>
-                            <button onClick={fetchAllUsers} className="btn btn-secondary" disabled={loading}>Refresh</button>
+)}
+
+activeTab === 'tickets' && (
+                <div className="tickets-tab">
+                    <div className="tab-header">
+                        <h2>All Tickets ({tickets.length})</h2>
+                        <button onClick={fetchAllTickets} className="btn btn-secondary" disabled={loading}>
+                            Refresh
+                        </button>
+                    </div>
+
+                    {tickets.length === 0 ? (
+                        <p>No tickets found.</p>
+                    ) : (
+                        <div className="tickets-table">
+                            {tickets.map((ticket) => (
+                                <div key={ticket._id || ticket.id} className="admin-ticket-card">
+                                    <div className="ticket-header">
+                                        <h3>
+                                            <Link to={`/tickets/${ticket._id || ticket.id}`}>
+                                                {ticket.title || 'Untitled Ticket'}
+                                            </Link>
+                                        </h3>
+                                        <div className="ticket-actions">
+                                            <select 
+                                                value={ticket.status || 'open'}
+                                                onChange={(e) => handleTicketStatusUpdate(ticket._id || ticket.id, e.target.value)}
+                                                className="status-select"
+                                            >
+                                                <option value="open">Open</option>
+                                                <option value="in-progress">In Progress</option>
+                                                <option value="resolved">Resolved</option>
+                                                <option value="closed">Closed</option>
+                                            </select>
+                                            <button 
+                                                onClick={() => handleDeleteTicket(ticket._id || ticket.id)}
+                                                className="btn btn-danger btn-sm"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="ticket-body">
+                                        <p><strong>Description:</strong> {ticket.description || 'No description provided'}</p>
+                                        <p><strong>Created by:</strong> {ticket.userName || ticket.user?.name || 'Unknown'}</p>
+                                        <p><strong>Created:</strong> {formatDate(ticket.createdAt)}</p>
+                                        <p><strong>Last Update:</strong> {formatDate(ticket.updatedAt)}</p>
+                                    </div>
+                                    <div className="ticket-meta">
+                                        <span 
+                                            className="priority-badge" 
+                                            style={{backgroundColor: getPriorityColor(ticket.priority)}}
+                                        > 
+                                            {ticket.priority || 'medium'}
+                                        </span>
+                                        <span 
+                                            className="status-badge" 
+                                            style={{backgroundColor: getStatusColor(ticket.status)}}
+                                        > 
+                                            {ticket.status || 'open'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )
+
+            {activeTab === 'users' && (
+                <div className="users-tab">
+                    <div className="tab-header">
+                        <h2>All Users ({users.length})</h2>
+                        <button onClick={fetchAllUsers} className="btn btn-secondary" disabled={loading}>
+                            Refresh
+                        </button>
                     </div>
                     {users.length === 0 ? (
                         <p>No users found.</p>
@@ -442,9 +450,11 @@ return (
                                         <p>Joined: {formatDate(user.createdAt)}</p>
                                     </div>
                                     <div className="user-actions">
-                                        <select value={user.role || 'user'}
-                                        onChange={(e) => handleUserRoleUpdate(user._id || user.id, e.target.value)} 
-                                        className="role_select">
+                                        <select 
+                                            value={user.role || 'user'}
+                                            onChange={(e) => handleUserRoleUpdate(user._id || user.id, e.target.value)} 
+                                            className="role-select"
+                                        >
                                             <option value="user">User</option>
                                             <option value="admin">Admin</option>
                                             <option value="moderator">Moderator</option>
@@ -454,15 +464,17 @@ return (
                                         <span className={`role-badge role-${user.role || 'user'}`}>
                                             {user.role || 'user'}
                                         </span>
+                                    </div>
                                 </div>
-                            </div>
                             ))}
                         </div>
                     )}
-                  </div>
-                );
-            }       
+                </div>
+            )}
+        </div>
+    </div>
+);
 
-};
 
+}
 export default AdminPage;
