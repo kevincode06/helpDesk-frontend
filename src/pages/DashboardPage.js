@@ -26,7 +26,7 @@ const DashboardPage = () => {
                 setLoading(true);
                 console.log('Fetching tickets with token:', token ? 'Token present' : 'No token');
                 
-                const response = await fetch('http://localhost:5000/api/v1/tickets/my-tickets', {
+                const response = await fetch('https://help-desk-backend-esr3.onrender.com/api/v1/tickets/my-tickets', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -60,7 +60,7 @@ const DashboardPage = () => {
             console.log('Using token:', token ? 'Token present' : 'No token');
             console.log('Creating ticket:', newTicket);
             
-            const response = await fetch('http://localhost:5000/api/v1/tickets', {
+            const response = await fetch('https://help-desk-backend-esr3.onrender.com/api/v1/tickets', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

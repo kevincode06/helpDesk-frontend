@@ -16,7 +16,7 @@ const TicketPage = () => {
 
     const fetchTicketDetails = useCallback(async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/v1/tickets/${id}`, {
+            const response = await fetch(`https://help-desk-backend-esr3.onrender.com/api/v1/tickets/${id}`, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -44,7 +44,7 @@ const TicketPage = () => {
 
     const fetchComments = useCallback(async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/v1/tickets/${id}/comments`, {
+            const response = await fetch(`https://help-desk-backend-esr3.onrender.com/api/v1/tickets/${id}/comments`, {
                 headers: {
                      'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -73,7 +73,7 @@ const TicketPage = () => {
 
         setSubmitComment(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/v1/tickets/${id}/comments`, {
+            const response = await fetch(``, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -101,7 +101,7 @@ const TicketPage = () => {
 
     const handleStatusUpdate = async (newStatus) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/v1/tickets/${id}/status`, {
+            const response = await fetch(`https://help-desk-backend-esr3.onrender.com/api/v1/tickets/${id}/comments`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
