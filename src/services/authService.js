@@ -29,7 +29,6 @@ API.interceptors.response.use(
 const login = async (data) => {
     console.log('=== AUTH SERVICE LOGIN ===');
     console.log('Login data:', data);
-    console.log('About to call:', `${process.env.REACT_APP_API_URL}/auth/login`);
 
     try {
         const res = await API.post('/auth/login',data);
@@ -66,7 +65,6 @@ const login = async (data) => {
 const register = async (data) => {
     console.log('=== AUTH SERVICE REGISTER ===');
     console.log('Register data:', data);
-    console.log('About to call:', `${process.env.REACT_APP_API_URL}/auth/register`);
 
     try {
         const res = await API.post('/auth/register', data);
