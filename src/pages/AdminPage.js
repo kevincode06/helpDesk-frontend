@@ -56,7 +56,7 @@ const AdminPage = () => {
 
     const fetchAllTickets = useCallback(async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/tickets`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/tickets`, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -78,7 +78,7 @@ const AdminPage = () => {
 
     const fetchAllUsers = useCallback(async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/users`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/users`, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -100,7 +100,7 @@ const AdminPage = () => {
 
 const fetchStats = useCallback(async () => {
     try {
-        const response = await fetch(`http://localhost:5000/api/v1/admin/stats`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/stats`, {
             headers : {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -146,7 +146,7 @@ const fetchStats = useCallback(async () => {
 //[tickets, users, setStats]
 const handleTicketStatusUpdate = async (ticketId, newStatus) => {
     try {
-        const response = await fetch(`http://localhost:5000/api/v1/admin/tickets/${ticketId}/status`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/tickets/${ticketId}/status`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -178,7 +178,7 @@ const handleDeleteTicket = async (ticketId) => {
     if (!window.confirm('Are you sure you want to delete this ticket?')) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/v1/admin/tickets/${ticketId}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/tickets/${ticketId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -203,7 +203,7 @@ const handleDeleteTicket = async (ticketId) => {
 };
 const handleUserRoleUpdate = async (userId, newRole) => {
     try {
-        const response = await fetch(`http://localhost:5000/api/v1/admin/users/${userId}/role`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/users/${userId}/role`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${token}`,

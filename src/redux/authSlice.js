@@ -93,7 +93,7 @@ const authSlice = createSlice({
 
             state.token = action.payload.token;
             localStorage.setItem('token', action.payload.token);
-            //state.user = JSON.parse(atob(action.payload.token.split('.')[1]));
+           
 
             let userData = null;
 
