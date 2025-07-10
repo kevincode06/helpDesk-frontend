@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import './TicketPage.css';
@@ -6,17 +6,19 @@ import './TicketPage.css';
 const TicketPage = () => {
     const { id } = useParams();
     const { user, token } = useSelector((state) => state.auth);
-    
+
     const [ticket, setTicket] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [submittingMessage, setSubmittingMessage] = useState(false);
     const [newMessage, setNewMessage] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState('');
 
     const fetchTicketDetails = useCallback(async () => {
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${id}`, {
-                headers : {
+                headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
@@ -36,7 +38,7 @@ const TicketPage = () => {
             setError('Error fetching ticket: ' + err.message);
         } finally {
             setLoading(false);
-        } 
+        }
     }, [id, token]);
 
     useEffect(() => {
@@ -53,9 +55,9 @@ const TicketPage = () => {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                   'Content-Type': 'application/json'
-               },
-               body: JSON.stringify({ message: newMessage })
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: newMessage })
             });
 
             if (response.ok) {
@@ -65,7 +67,7 @@ const TicketPage = () => {
             } else {
                 const errorData = await response.json();
                 setError(errorData.message || 'Failed to add message');
-            } 
+            }
         } catch (err) {
             setError('Error adding message: ' + err.message);
         } finally {
@@ -79,20 +81,64 @@ const TicketPage = () => {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                   'Content-Type': 'application/json'
-               },
-               body: JSON.stringify({ status: newStatus })
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setTicket(data.data || data);
             } else {
                 const errorData = await response.json();
                 setError(errorData.message || 'Failed to update status');
-            } 
+            }
         } catch (err) {
             setError('Error updating status: ' + err.message);
+        }
+    };
+
+    const handleAIResponse = async () => {
+        setAiLoading(true);
+        setAiError('');
+
+        try {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${id}/ai-response`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ conversation: ticket.conversation })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const aiReply = data.aiReply;
+
+                if (aiReply) {
+                    setTicket(prev => ({
+                        ...prev,
+                        conversation: [
+                            ...prev.conversation,
+                            {
+                                sender: 'ai',
+                                message: aiReply,
+                                sentAt: new Date().toISOString()
+                            }
+                        ]
+                    }));
+                } else {
+                    setAiError('No AI response received');
+                }
+            } else {
+                const errorData = await response.json();
+                setAiError(errorData.message || 'AI request failed');
+            }
+        } catch (err) {
+            setAiError('AI Error: ' + err.message);
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -153,18 +199,6 @@ const TicketPage = () => {
         );
     }
 
-    if (!ticket) {
-        return (
-            <div className="ticket-container">
-                <div className="error-page">
-                    <h2>Ticket Not Found</h2>
-                    <p>The ticket you're looking for doesn't exist or you don't have permission to view it.</p>
-                    <Link to="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="ticket-container">
             <div className="ticket-header">
@@ -178,9 +212,9 @@ const TicketPage = () => {
                     {(user?.role === 'admin' || user?.id === ticket.user?._id) && (
                         <div className="status-action">
                             <label>Status:</label>
-                            <select 
-                                value={ticket.status || 'open'} 
-                                onChange={(e) => handleStatusUpdate(e.target.value)} 
+                            <select
+                                value={ticket.status || 'open'}
+                                onChange={(e) => handleStatusUpdate(e.target.value)}
                                 className="status-select"
                             >
                                 <option value="open">Open</option>
@@ -190,7 +224,7 @@ const TicketPage = () => {
                             </select>
                         </div>
                     )}
-                </div> 
+                </div>
             </div>
 
             <div className="ticket-content">
@@ -206,7 +240,7 @@ const TicketPage = () => {
                             </span>
                         </div>
                     </div>
-                    
+
                     <div className="ticket-meta">
                         <div className="meta-item">
                             <strong>Created by:</strong> {ticket.user?.name || 'Unknown'}
@@ -233,8 +267,8 @@ const TicketPage = () => {
                             ticket.conversation.map((message, index) => (
                                 <div key={index} className={`message ${message.sender}`}>
                                     <div className="message-header">
-                                        <span 
-                                            className="sender-badge" 
+                                        <span
+                                            className="sender-badge"
                                             style={{ backgroundColor: getSenderBadgeColor(message.sender) }}
                                         >
                                             {formatSenderName(message.sender)}
@@ -254,18 +288,27 @@ const TicketPage = () => {
                     </div>
 
                     {ticket.status !== 'closed' && (
-                        <form onSubmit={handleAddMessage} className="add-message-form">
-                            <textarea 
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Type your message here..."
-                                rows="3"
-                                required
-                            />
-                            <button type="submit" disabled={submittingMessage} className="btn btn-primary"> 
-                                {submittingMessage ? 'Sending...' : 'Send Message'}
-                            </button>
-                        </form>
+                        <>
+                            <div className="ai-suggestion-box">
+                                <button onClick={handleAIResponse} className="btn btn-secondary" disabled={aiLoading}>
+                                    {aiLoading ? 'Thinking...' : 'Get AI Suggestion'}
+                                </button>
+                                {aiError && <p className="error-message">{aiError}</p>}
+                            </div>
+
+                            <form onSubmit={handleAddMessage} className="add-message-form">
+                                <textarea
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    placeholder="Type your message here..."
+                                    rows="3"
+                                    required
+                                />
+                                <button type="submit" disabled={submittingMessage} className="btn btn-primary">
+                                    {submittingMessage ? 'Sending...' : 'Send Message'}
+                                </button>
+                            </form>
+                        </>
                     )}
                 </div>
             </div>

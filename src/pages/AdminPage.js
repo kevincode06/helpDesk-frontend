@@ -45,9 +45,10 @@ const AdminPage = () => {
         }
     }, [tickets, users, calculateStatsFromData]);
 
+    // admin endpoints
     const fetchAllTickets = useCallback(async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/tickets`, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -58,17 +59,19 @@ const AdminPage = () => {
                 const data = await response.json();
                 setTickets(data.data || []);
             } else {
-                throw new Error('Failed to fetch tickets');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch tickets');
             }
         } catch (err) {
             console.error('Error fetching tickets:', err);
-            setError('Failed to fetch tickets');
+            setError('Failed to fetch tickets: ' + err.message);
         }
     }, [token]); 
 
+    // admin endpoints
     const fetchAllUsers = useCallback(async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/users`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/users`, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -79,17 +82,19 @@ const AdminPage = () => {
                 const data = await response.json();
                 setUsers(data.data || []);
             } else {
-                throw new Error('Failed to fetch users');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch users');
             }
         } catch (err) {
             console.error('Error fetching users:', err);
-            setError('Failed to fetch users');
+            setError('Failed to fetch users: ' + err.message);
         }
     }, [token]);
 
+    // admin endpoints
     const fetchStats = useCallback(async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/stats`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/stats`, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -124,17 +129,21 @@ const AdminPage = () => {
                             case 'closed':
                                 processedStats.closedTickets = stat.count;
                                 break;
+                                default:
+                                 console.warn(`Unhandled status type in stats: ${stat._id}`);
+                                 break;
                         }
                     });
                 }
 
                 setStats(processedStats);
             } else {
-                throw new Error('Failed to fetch stats');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch stats');
             } 
         } catch (err) {
             console.error('Error fetching stats:', err);
-            setError('Failed to fetch stats');
+            setError('Failed to fetch stats: ' + err.message);
         }
     }, [token, users.length]);
 
@@ -148,7 +157,7 @@ const AdminPage = () => {
             // Fetch stats after tickets and users are loaded
             await fetchStats();
         } catch (err) {
-            setError('Failed to load dashboard data');
+            setError('Failed to load dashboard data: ' + err.message);
         } finally {
             setLoading(false);
         }
@@ -158,10 +167,11 @@ const AdminPage = () => {
         fetchDashboardData();
     }, [fetchDashboardData]);
 
+    //  FIXED: Using admin endpoints
     const handleTicketStatusUpdate = async (ticketId, newStatus) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${ticketId}`, {
-                method: 'PUT',
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/tickets/${ticketId}/status`, {
+                method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                    'Content-Type': 'application/json'
@@ -170,10 +180,10 @@ const AdminPage = () => {
             });
 
             if (response.ok) {
-                const data = await response.json();
+                // Update ticket status in state
                 setTickets(prevTickets =>
                     prevTickets.map(ticket => 
-                        ticket._id === ticketId ? data.data : ticket
+                        ticket._id === ticketId ? { ...ticket, status: newStatus } : ticket
                     )
                 );
             } else {
@@ -185,11 +195,12 @@ const AdminPage = () => {
         }
     };
 
+    // admin endpoints
     const handleDeleteTicket = async (ticketId) => {
         if (!window.confirm('Are you sure you want to delete this ticket?')) return;
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${ticketId}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/tickets/${ticketId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -210,10 +221,11 @@ const AdminPage = () => {
         }
     };
 
+    // Using admin endpoints
     const handleUserRoleUpdate = async (userId, newRole) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/users/${userId}`, {
-                method: 'PUT',
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/users/${userId}/role`, {
+                method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                    'Content-Type': 'application/json'
@@ -222,10 +234,10 @@ const AdminPage = () => {
             });
 
             if (response.ok) {
-                const data = await response.json();
+                // Update user role in state
                 setUsers(prevUsers => 
                     prevUsers.map(u => 
-                        u._id === userId ? data.data : u
+                        u._id === userId ? { ...u, role: newRole } : u
                     )
                 );
             } else {
@@ -269,6 +281,13 @@ const AdminPage = () => {
             day: 'numeric'
         });
     };
+
+    // ✅ ADDED: Debug info
+    useEffect(() => {
+        console.log('Token:', token);
+        console.log('User:', user);
+        console.log('API URL:', process.env.REACT_APP_API_URL);
+    }, [token, user]);
 
     if (loading) {
         return (
