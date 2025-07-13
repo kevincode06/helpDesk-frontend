@@ -45,64 +45,122 @@ const AdminPage = () => {
         }
     }, [tickets, users, calculateStatsFromData]);
 
-    // admin endpoints
+    // Debug version of fetchAllTickets
     const fetchAllTickets = useCallback(async () => {
+        console.log('DEBUG: Starting fetchAllTickets');
+        console.log('DEBUG: Token exists:', !!token);
+        console.log('DEBUG: API URL:', process.env.REACT_APP_API_URL);
+        
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/tickets`, {
+            const url = `${process.env.REACT_APP_API_URL}/admin/tickets`;
+            console.log('DEBUG: Fetching from URL:', url);
+            
+            const response = await fetch(url, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-        
+            
+            console.log('DEBUG: Response status:', response.status);
+            console.log('DEBUG: Response ok:', response.ok);
+            
             if (response.ok) {
                 const data = await response.json();
-                setTickets(data.data || []);
+                console.log('DEBUG: Response data:', data);
+                console.log('DEBUG: Data type:', typeof data);
+                console.log('DEBUG: Data.data exists:', !!data.data);
+                console.log('DEBUG: Data.data length:', data.data?.length || 0);
+                
+                // Handle different response formats
+                let ticketsData = [];
+                if (data.data && Array.isArray(data.data)) {
+                    ticketsData = data.data;
+                } else if (data.tickets && Array.isArray(data.tickets)) {
+                    ticketsData = data.tickets;
+                } else if (Array.isArray(data)) {
+                    ticketsData = data;
+                } else {
+                    console.log('DEBUG: Unexpected data format:', data);
+                }
+                
+                console.log('DEBUG: Setting tickets:', ticketsData);
+                setTickets(ticketsData);
             } else {
                 const errorData = await response.json();
+                console.log('DEBUG: Error response:', errorData);
                 throw new Error(errorData.message || 'Failed to fetch tickets');
             }
         } catch (err) {
-            console.error('Error fetching tickets:', err);
+            console.error('DEBUG: Error in fetchAllTickets:', err);
             setError('Failed to fetch tickets: ' + err.message);
         }
     }, [token]); 
 
-    // admin endpoints
+    // Debug version of fetchAllUsers
     const fetchAllUsers = useCallback(async () => {
+        console.log('DEBUG: Starting fetchAllUsers');
+        
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/users`, {
+            const url = `${process.env.REACT_APP_API_URL}/admin/users`;
+            console.log('DEBUG: Fetching users from URL:', url);
+            
+            const response = await fetch(url, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
+            
+            console.log('DEBUG: Users response status:', response.status);
 
             if (response.ok) {
                 const data = await response.json();
-                setUsers(data.data || []);
+                console.log('DEBUG: Users response data:', data);
+                
+                // Handle different response formats
+                let usersData = [];
+                if (data.data && Array.isArray(data.data)) {
+                    usersData = data.data;
+                } else if (data.users && Array.isArray(data.users)) {
+                    usersData = data.users;
+                } else if (Array.isArray(data)) {
+                    usersData = data;
+                }
+                
+                console.log('DEBUG: Setting users:', usersData);
+                setUsers(usersData);
             } else {
                 const errorData = await response.json();
+                console.log('DEBUG: Users error response:', errorData);
                 throw new Error(errorData.message || 'Failed to fetch users');
             }
         } catch (err) {
-            console.error('Error fetching users:', err);
+            console.error('DEBUG: Error in fetchAllUsers:', err);
             setError('Failed to fetch users: ' + err.message);
         }
     }, [token]);
 
-    // admin endpoints
     const fetchStats = useCallback(async () => {
+        console.log('DEBUG: Starting fetchStats');
+        
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/stats`, {
+            const url = `${process.env.REACT_APP_API_URL}/admin/stats`;
+            console.log('DEBUG: Fetching stats from URL:', url);
+            
+            const response = await fetch(url, {
                 headers : {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
+            
+            console.log('DEBUG: Stats response status:', response.status);
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('DEBUG: Stats response data:', data);
+                
                 // Process stats data to match our format
                 const processedStats = {
                     totalTickets: 0,
@@ -136,18 +194,22 @@ const AdminPage = () => {
                     });
                 }
 
+                console.log('DEBUG: Processed stats:', processedStats);
                 setStats(processedStats);
             } else {
                 const errorData = await response.json();
+                console.log('DEBUG: Stats error response:', errorData);
                 throw new Error(errorData.message || 'Failed to fetch stats');
             } 
         } catch (err) {
-            console.error('Error fetching stats:', err);
+            console.error('DEBUG: Error in fetchStats:', err);
             setError('Failed to fetch stats: ' + err.message);
         }
     }, [token, users.length]);
 
     const fetchDashboardData = useCallback(async() => {
+        console.log('DEBUG: Starting fetchDashboardData');
+        
         try {
             setLoading(true);
             await Promise.all([
@@ -157,6 +219,7 @@ const AdminPage = () => {
             // Fetch stats after tickets and users are loaded
             await fetchStats();
         } catch (err) {
+            console.error('DEBUG: Error in fetchDashboardData:', err);
             setError('Failed to load dashboard data: ' + err.message);
         } finally {
             setLoading(false);
@@ -167,10 +230,11 @@ const AdminPage = () => {
         fetchDashboardData();
     }, [fetchDashboardData]);
 
-    //  FIXED: Using admin endpoints
     const handleTicketStatusUpdate = async (ticketId, newStatus) => {
+        console.log('DEBUG: Updating ticket status:', ticketId, newStatus);
+        
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/tickets/${ticketId}/status`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/tickets/${ticketId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -180,6 +244,7 @@ const AdminPage = () => {
             });
 
             if (response.ok) {
+                console.log('DEBUG: Ticket status updated successfully');
                 // Update ticket status in state
                 setTickets(prevTickets =>
                     prevTickets.map(ticket => 
@@ -188,19 +253,22 @@ const AdminPage = () => {
                 );
             } else {
                 const errorData = await response.json();
+                console.log('DEBUG: Error updating ticket status:', errorData);
                 setError(errorData.message || 'Failed to update ticket status');
             } 
         } catch (err) {
+            console.error('DEBUG: Error in handleTicketStatusUpdate:', err);
             setError('Error updating ticket: ' + err.message);
         }
     };
 
-    // admin endpoints
     const handleDeleteTicket = async (ticketId) => {
         if (!window.confirm('Are you sure you want to delete this ticket?')) return;
 
+        console.log('DEBUG: Deleting ticket:', ticketId);
+        
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/tickets/${ticketId}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/tickets/${ticketId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -209,22 +277,26 @@ const AdminPage = () => {
             });
 
             if (response.ok) {
+                console.log('DEBUG: Ticket deleted successfully');
                 setTickets(prevTickets =>
                     prevTickets.filter(ticket => ticket._id !== ticketId)
                 );
             } else {
                 const errorData = await response.json();
+                console.log('DEBUG: Error deleting ticket:', errorData);
                 setError(errorData.message || 'Failed to delete ticket');
             }
         } catch (err) {
+            console.error('DEBUG: Error in handleDeleteTicket:', err);
             setError('Error deleting ticket: ' + err.message);
         }
     };
 
-    // Using admin endpoints
     const handleUserRoleUpdate = async (userId, newRole) => {
+        console.log('DEBUG: Updating user role:', userId, newRole);
+        
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/users/${userId}/role`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/users/${userId}/role`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -234,6 +306,7 @@ const AdminPage = () => {
             });
 
             if (response.ok) {
+                console.log('DEBUG: User role updated successfully');
                 // Update user role in state
                 setUsers(prevUsers => 
                     prevUsers.map(u => 
@@ -242,9 +315,11 @@ const AdminPage = () => {
                 );
             } else {
                 const errorData = await response.json();
+                console.log('DEBUG: Error updating user role:', errorData);
                 setError(errorData.message || 'Failed to update user role');
             }
         } catch (err) {
+            console.error('DEBUG: Error in handleUserRoleUpdate:', err);
             setError('Error updating user role: ' + err.message);
         }
     };
@@ -282,12 +357,19 @@ const AdminPage = () => {
         });
     };
 
-    // ✅ ADDED: Debug info
+    // Debug info
     useEffect(() => {
-        console.log('Token:', token);
-        console.log('User:', user);
-        console.log('API URL:', process.env.REACT_APP_API_URL);
-    }, [token, user]);
+        console.log('DEBUG: Component mounted/updated');
+        console.log('DEBUG: Token exists:', !!token);
+        console.log('DEBUG: Token value:', token);
+        console.log('DEBUG: User:', user);
+        console.log('DEBUG: User role:', user?.role);
+        console.log('DEBUG: API URL:', process.env.REACT_APP_API_URL);
+        console.log('DEBUG: Tickets count:', tickets.length);
+        console.log('DEBUG: Users count:', users.length);
+        console.log('DEBUG: Loading state:', loading);
+        console.log('DEBUG: Error state:', error);
+    }, [token, user, tickets.length, users.length, loading, error]);
 
     if (loading) {
         return (

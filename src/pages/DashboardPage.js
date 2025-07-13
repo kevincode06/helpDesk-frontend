@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from "../redux/authSlice";
+import AIChat from '../components/AIChat';  
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -13,6 +14,7 @@ const DashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
+    const [showAIChat, setShowAIChat] = useState(false);
     const [newTicket, setNewTicket] = useState({
         title: '',
         description: '',
@@ -120,10 +122,26 @@ const DashboardPage = () => {
         }
     };
 
+    // AI Chat handlers
+    const handleAIHelp = () => {
+        setShowAIChat(!showAIChat);
+    };
+
+    const handleAITicketSuggestion = (suggestion) => {
+        // Use AI suggestion to pre-fill ticket form
+        setNewTicket({
+            title: suggestion.title || '',
+            description: suggestion.description || '',
+            priority: suggestion.priority || 'medium'
+        });
+        setShowCreateForm(true);
+        setShowAIChat(false);
+    };
+
     if (loading) {
         return (
             <div className="dashboard-container">
-                <div className="loading">loading your tickets...</div>
+                <div className="loading">Loading your tickets...</div>
             </div>
         );
     }
@@ -135,27 +153,46 @@ const DashboardPage = () => {
                     <h1>Welcome back, {user?.name}!</h1>
                     <p>Manage your support tickets</p>
                 </div>
-                <div className="header-action">
+                <div className="header-actions">
                     {user?.role === 'admin' && (
                         <Link to="/admin" className="btn btn-admin">Admin Dashboard</Link>
                     )}
+                    <button onClick={handleAIHelp} className="btn btn-ai">
+                        {showAIChat ? 'Close AI Help' : 'AI Help'}
+                    </button>
                     <button onClick={handleLogout} className="btn btn-logout">Logout</button>
                 </div>
             </div>
+
             {error && (
                 <div className="error-message">
                     {error} 
-                    <button onClick={() => setError(null)}>x</button>
+                    <button onClick={() => setError(null)}>×</button>
                 </div>
             )}
 
-            <div className="dashboard-container">
-                <div className="tickets-section">
-                    <h2>My Tickets ({tickets?.length || 0})</h2>
-                    <button onClick={() => setShowCreateForm(!showCreateForm)} className="btn btn-primary">
-                        {showCreateForm ? 'Cancel' : ' +New Ticket'}
-                    </button>
+            {/* AI Chat Component */}
+            {showAIChat && (
+                <div className="ai-chat-container">
+                    <AIChat 
+                        user={user}
+                        tickets={tickets}
+                        onTicketSuggestion={handleAITicketSuggestion}
+                        onClose={() => setShowAIChat(false)}
+                    />
                 </div>
+            )}
+
+            <div className="dashboard-content">
+                <div className="tickets-section">
+                    <div className="section-header">
+                        <h2>My Tickets ({tickets?.length || 0})</h2>
+                        <button onClick={() => setShowCreateForm(!showCreateForm)} className="btn btn-primary">
+                            {showCreateForm ? 'Cancel' : '+ New Ticket'}
+                        </button>
+                    </div>
+                </div>
+
                 {showCreateForm && (
                     <div className="create-ticket-form">
                         <h3>Create New Ticket</h3>
@@ -181,7 +218,7 @@ const DashboardPage = () => {
                                     required
                                     rows="4"
                                     placeholder="Detailed description of your issue"
-                                ></textarea>
+                                />
                             </div>
 
                             <div className="form-group">
@@ -218,6 +255,9 @@ const DashboardPage = () => {
                         <div className="no-tickets">
                             <h3>No tickets yet</h3>
                             <p>Create your first support ticket to get started.</p>
+                            <button onClick={handleAIHelp} className="btn btn-ai-help">
+                                Need help getting started? Ask our AI assistant
+                            </button>
                         </div>
                     ) : (
                         tickets.map((ticket, index) => ( 
@@ -244,7 +284,7 @@ const DashboardPage = () => {
 
                                 <div className="ticket-footer">
                                     <span className="ticket-date">
-                                        created: {ticket.createdAt || ticket.created_at ? new Date(ticket.createdAt || ticket.created_at).toLocaleDateString() : 'N/A'}
+                                        Created: {ticket.createdAt || ticket.created_at ? new Date(ticket.createdAt || ticket.created_at).toLocaleDateString() : 'N/A'}
                                     </span>
                                     <Link to={`/tickets/${ticket._id || ticket.id}`} className="btn btn-small">
                                         View Details

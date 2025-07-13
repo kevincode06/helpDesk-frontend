@@ -1,45 +1,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { getTicket, updateTicket, generateAIResponse, clearAIError } from "../redux/ticketSlice";
 import './TicketPage.css';
 
 const TicketPage = () => {
     const { id } = useParams();
-    const { user, token } = useSelector((state) => state.auth);
+    const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.auth);
+    const { ticket, loading, aiLoading, error, aiError } = useSelector((state) => state.tickets);
 
-    const [ticket, setTicket] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [submittingMessage, setSubmittingMessage] = useState(false);
     const [newMessage, setNewMessage] = useState('');
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiError, setAiError] = useState('');
+    const [statusUpdating, setStatusUpdating] = useState(false);
 
-    const fetchTicketDetails = useCallback(async () => {
-        try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setTicket(data.data || data);
-            } else if (response.status === 404) {
-                setError('Ticket not found');
-            } else if (response.status === 403) {
-                setError('You do not have permission to view this ticket');
-            } else {
-                setError('Failed to fetch ticket details');
-            }
-        } catch (err) {
-            setError('Error fetching ticket: ' + err.message);
-        } finally {
-            setLoading(false);
+    const fetchTicketDetails = useCallback(() => {
+        if (id) {
+            dispatch(getTicket(id));
         }
-    }, [id, token]);
+    }, [id, dispatch]);
 
     useEffect(() => {
         fetchTicketDetails();
@@ -51,94 +30,38 @@ const TicketPage = () => {
 
         setSubmittingMessage(true);
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: newMessage })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setTicket(data.data || data);
-                setNewMessage('');
-            } else {
-                const errorData = await response.json();
-                setError(errorData.message || 'Failed to add message');
-            }
-        } catch (err) {
-            setError('Error adding message: ' + err.message);
+            await dispatch(updateTicket({ 
+                id, 
+                data: { message: newMessage } 
+            })).unwrap();
+            setNewMessage('');
+        } catch (error) {
+            console.error('Error adding message:', error);
         } finally {
             setSubmittingMessage(false);
         }
     };
 
     const handleStatusUpdate = async (newStatus) => {
+        setStatusUpdating(true);
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status: newStatus })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setTicket(data.data || data);
-            } else {
-                const errorData = await response.json();
-                setError(errorData.message || 'Failed to update status');
-            }
-        } catch (err) {
-            setError('Error updating status: ' + err.message);
+            await dispatch(updateTicket({ 
+                id, 
+                data: { status: newStatus } 
+            })).unwrap();
+        } catch (error) {
+            console.error('Error updating status:', error);
+        } finally {
+            setStatusUpdating(false);
         }
     };
 
     const handleAIResponse = async () => {
-        setAiLoading(true);
-        setAiError('');
-
+        dispatch(clearAIError());
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/tickets/${id}/ai-response`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ conversation: ticket.conversation })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const aiReply = data.aiReply;
-
-                if (aiReply) {
-                    setTicket(prev => ({
-                        ...prev,
-                        conversation: [
-                            ...prev.conversation,
-                            {
-                                sender: 'ai',
-                                message: aiReply,
-                                sentAt: new Date().toISOString()
-                            }
-                        ]
-                    }));
-                } else {
-                    setAiError('No AI response received');
-                }
-            } else {
-                const errorData = await response.json();
-                setAiError(errorData.message || 'AI request failed');
-            }
-        } catch (err) {
-            setAiError('AI Error: ' + err.message);
-        } finally {
-            setAiLoading(false);
+            await dispatch(generateAIResponse(id)).unwrap();
+        } catch (error) {
+            console.error('AI Error:', error);
         }
     };
 
@@ -179,10 +102,22 @@ const TicketPage = () => {
         }
     };
 
+    const getSenderIcon = (sender) => {
+        switch (sender) {
+            case 'user': return '👤';
+            case 'ai': return '🤖';
+            case 'admin': return '🛠️';
+            default: return '💬';
+        }
+    };
+
     if (loading) {
         return (
             <div className="ticket-container">
-                <div className="loading">Loading ticket details...</div>
+                <div className="loading">
+                    <div className="spinner"></div>
+                    <p>Loading ticket details...</p>
+                </div>
             </div>
         );
     }
@@ -193,6 +128,18 @@ const TicketPage = () => {
                 <div className="error-page">
                     <h2>Error</h2>
                     <p>{error}</p>
+                    <Link to="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (!ticket) {
+        return (
+            <div className="ticket-container">
+                <div className="error-page">
+                    <h2>Ticket Not Found</h2>
+                    <p>The ticket you're looking for doesn't exist or you don't have permission to view it.</p>
                     <Link to="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
                 </div>
             </div>
@@ -216,12 +163,14 @@ const TicketPage = () => {
                                 value={ticket.status || 'open'}
                                 onChange={(e) => handleStatusUpdate(e.target.value)}
                                 className="status-select"
+                                disabled={statusUpdating}
                             >
                                 <option value="open">Open</option>
                                 <option value="awaiting_response">Awaiting Response</option>
                                 <option value="resolved">Resolved</option>
                                 <option value="closed">Closed</option>
                             </select>
+                            {statusUpdating && <span className="updating-text">Updating...</span>}
                         </div>
                     )}
                 </div>
@@ -244,6 +193,9 @@ const TicketPage = () => {
                     <div className="ticket-meta">
                         <div className="meta-item">
                             <strong>Created by:</strong> {ticket.user?.name || 'Unknown'}
+                        </div>
+                        <div className="meta-item">
+                            <strong>Email:</strong> {ticket.user?.email || 'Unknown'}
                         </div>
                         <div className="meta-item">
                             <strong>Created:</strong> {new Date(ticket.createdAt).toLocaleDateString()}
@@ -271,7 +223,7 @@ const TicketPage = () => {
                                             className="sender-badge"
                                             style={{ backgroundColor: getSenderBadgeColor(message.sender) }}
                                         >
-                                            {formatSenderName(message.sender)}
+                                            {getSenderIcon(message.sender)} {formatSenderName(message.sender)}
                                         </span>
                                         <span className="message-time">
                                             {new Date(message.sentAt).toLocaleString()}
@@ -290,8 +242,12 @@ const TicketPage = () => {
                     {ticket.status !== 'closed' && (
                         <>
                             <div className="ai-suggestion-box">
-                                <button onClick={handleAIResponse} className="btn btn-secondary" disabled={aiLoading}>
-                                    {aiLoading ? 'Thinking...' : 'Get AI Suggestion'}
+                                <button 
+                                    onClick={handleAIResponse} 
+                                    className="btn btn-secondary" 
+                                    disabled={aiLoading}
+                                >
+                                    {aiLoading ? '🤖 Thinking...' : '🤖 Get AI Suggestion'}
                                 </button>
                                 {aiError && <p className="error-message">{aiError}</p>}
                             </div>
@@ -303,8 +259,13 @@ const TicketPage = () => {
                                     placeholder="Type your message here..."
                                     rows="3"
                                     required
+                                    disabled={submittingMessage}
                                 />
-                                <button type="submit" disabled={submittingMessage} className="btn btn-primary">
+                                <button 
+                                    type="submit" 
+                                    disabled={submittingMessage || !newMessage.trim()} 
+                                    className="btn btn-primary"
+                                >
                                     {submittingMessage ? 'Sending...' : 'Send Message'}
                                 </button>
                             </form>
