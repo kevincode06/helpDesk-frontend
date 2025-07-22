@@ -1,0 +1,151 @@
+.landing-page {
+    font-family: Arial, sans-serif;
+    color: #333;
+  }
+  
+  /* Hero */
+  .hero {
+    background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+    padding: 60px 20px;
+  }
+  
+  .hero-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: auto;
+  }
+  
+  .hero-text {
+    flex: 1;
+    padding: 20px;
+  }
+  
+  .hero-text h1 {
+    font-size: 42px;
+    margin-bottom: 20px;
+  }
+  
+  .hero-text p {
+    font-size: 18px;
+    margin-bottom: 30px;
+  }
+  
+  .hero-buttons .btn {
+    margin-right: 15px;
+  }
+  
+  .hero-image img {
+    max-width: 500px;
+    width: 100%;
+    border-radius: 16px;
+  }
+  
+  /* Badge */
+  .badge {
+    background-color: #e0ecff;
+    color: #0044cc;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+  
+  /* Buttons */
+  .btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .btn.primary {
+    background-color: #0044cc;
+    color: white;
+  }
+  
+  .btn.outline {
+    background-color: white;
+    color: #0044cc;
+    border: 2px solid #0044cc;
+  }
+  
+  /* Stats */
+  .stats {
+    background-color: #f0f4fa;
+    padding: 40px 20px;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: auto;
+    text-align: center;
+  }
+  
+  .stat-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #0044cc;
+  }
+  
+  .stat-label {
+    font-size: 16px;
+  }
+  
+  /* Features */
+  .features {
+    padding: 60px 20px;
+    text-align: center;
+  }
+  
+  .features h2 {
+    font-size: 32px;
+    margin-bottom: 10px;
+  }
+  
+  .features-subtitle {
+    max-width: 600px;
+    margin: 0 auto 40px;
+  }
+  
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: auto;
+  }
+  
+  .feature-card {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 10px;
+  }
+  
+  .feature-icon {
+    margin-bottom: 10px;
+    color: #0044cc;
+  }
+  
+  /* CTA */
+  .cta {
+    background-color: #eaf0fb;
+    text-align: center;
+    padding: 60px 20px;
+  } 
+  
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 30px 20px;
+    border-top: 1px solid #ccc;
+  }
+  

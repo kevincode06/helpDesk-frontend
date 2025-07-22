@@ -187,3 +187,28 @@
     border-radius: 8px;
   }
   
+
+  .message-input-section {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.message-input-section textarea {
+    resize: vertical;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.message-input-section button {
+    align-self: flex-end;
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
