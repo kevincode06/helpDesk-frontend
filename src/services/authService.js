@@ -5,16 +5,20 @@ console.log('Environment variables:');
 console.log('REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('All env vars starting with REACT_APP_:', 
-  Object.keys(process.env).filter(key => key.startsWith('REACT_APP_'))
-);
+  Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')));
 
+// ✅ FIX: Define it before using it
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+console.log('Axios baseURL:', API_BASE_URL);
+
+// Create Axios instance
 const API = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1',
+    baseURL: API_BASE_URL,
 });
 
-// Debug the axios instance
-console.log('Axios baseURL:', API.defaults.baseURL);
+console.log('Axios default baseURL:', API.defaults.baseURL);
 
+// Request interceptor
 API.interceptors.request.use((req) => {
     console.log('=== AXIOS REQUEST INTERCEPTOR ===');
     console.log('Request URL:', req.url);
@@ -23,7 +27,7 @@ API.interceptors.request.use((req) => {
     console.log('Request method:', req.method);
     console.log('Request headers:', req.headers);
     console.log('Request data:', req.data);
-    
+
     const token = localStorage.getItem('token');
     if (token) {
         req.headers.Authorization = `Bearer ${token}`;
@@ -32,6 +36,7 @@ API.interceptors.request.use((req) => {
     return req;
 });
 
+// Response interceptor
 API.interceptors.response.use(
     (response) => {
         console.log('=== AXIOS RESPONSE INTERCEPTOR ===');
@@ -51,7 +56,7 @@ API.interceptors.response.use(
     }
 );
 
-// Send login request
+// Login
 const login = async (data) => {
     console.log('=== AUTH SERVICE LOGIN ===');
     console.log('Login data:', data);
@@ -61,13 +66,11 @@ const login = async (data) => {
 
     try {
         const res = await API.post('/auth/login', data);
-
         console.log('Login response:', res.data);
         console.log('Token received:', res.data.token ? 'Yes' : 'No');
         console.log('User data received:', res.data.user || 'Not in user field');
 
         if (!res.data.user && res.data.token) {
-            console.log('Checking if user data is in root response...');
             try {
                 const tokenPayload = JSON.parse(atob(res.data.token.split('.')[1]));
                 console.log('Token payload:', tokenPayload);
@@ -83,7 +86,7 @@ const login = async (data) => {
     }
 };
 
-// Send register request
+// Register
 const register = async (data) => {
     console.log('=== AUTH SERVICE REGISTER ===');
     console.log('Register data:', data);
@@ -99,7 +102,7 @@ const register = async (data) => {
         console.error('Register service error:', error.response?.data || error.message);
         throw error;
     }
-}; 
+};
 
 const authService = { login, register };
 

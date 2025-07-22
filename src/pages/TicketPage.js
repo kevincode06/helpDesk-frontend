@@ -5,276 +5,111 @@ import { getTicket, updateTicket, generateAIResponse, clearAIError } from "../re
 import './TicketPage.css';
 
 const TicketPage = () => {
-    const { id } = useParams();
-    const dispatch = useDispatch();
-    const { user } = useSelector((state) => state.auth);
-    const { ticket, loading, aiLoading, error, aiError } = useSelector((state) => state.tickets);
+  const { id } = useParams();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { ticket, loading, aiLoading, error, aiError } = useSelector((state) => state.tickets);
 
-    const [submittingMessage, setSubmittingMessage] = useState(false);
-    const [newMessage, setNewMessage] = useState('');
-    const [statusUpdating, setStatusUpdating] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [submittingMessage, setSubmittingMessage] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
-    const fetchTicketDetails = useCallback(() => {
-        if (id) {
-            dispatch(getTicket(id));
-        }
-    }, [id, dispatch]);
+  const fetchTicketDetails = useCallback(() => {
+    dispatch(getTicket(id));
+  }, [dispatch, id]);
 
-    useEffect(() => {
-        fetchTicketDetails();
-    }, [fetchTicketDetails]);
+  const fetchMessages = useCallback(async () => {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/messages/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json"
+      }
+    });
+    const data = await res.json();
+    setMessages(data.data || data);
+  }, [id]);
 
-    const handleAddMessage = async (e) => {
-        e.preventDefault();
-        if (!newMessage.trim()) return;
+  useEffect(() => {
+    fetchTicketDetails();
+    fetchMessages();
+  }, [fetchTicketDetails, fetchMessages]);
 
-        setSubmittingMessage(true);
-        try {
-            await dispatch(updateTicket({ 
-                id, 
-                data: { message: newMessage } 
-            })).unwrap();
-            setNewMessage('');
-        } catch (error) {
-            console.error('Error adding message:', error);
-        } finally {
-            setSubmittingMessage(false);
-        }
-    };
+  const handleAddMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
 
-    const handleStatusUpdate = async (newStatus) => {
-        setStatusUpdating(true);
-        try {
-            await dispatch(updateTicket({ 
-                id, 
-                data: { status: newStatus } 
-            })).unwrap();
-        } catch (error) {
-            console.error('Error updating status:', error);
-        } finally {
-            setStatusUpdating(false);
-        }
-    };
+    setSubmittingMessage(true);
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ticketId: id, message: newMessage })
+    });
+    const saved = await res.json();
+    setMessages(prev => [...prev, saved.data || saved]);
+    setNewMessage('');
+    setSubmittingMessage(false);
+  };
 
-    const handleAIResponse = async () => {
-        dispatch(clearAIError());
-        try {
-            await dispatch(generateAIResponse(id)).unwrap();
-        } catch (error) {
-            console.error('AI Error:', error);
-        }
-    };
+  const handleStatusUpdate = async (newStatus) => {
+    setStatusUpdating(true);
+    await dispatch(updateTicket({ id, data: { status: newStatus } })).unwrap();
+    setStatusUpdating(false);
+  };
 
-    const getPriorityColor = (priority) => {
-        switch (priority) {
-            case 'high': return '#ff4757';
-            case 'medium': return '#ffa502';
-            case 'low': return '#2ed573';
-            default: return '#747d8c';
-        }
-    };
+  const handleAIResponse = async () => {
+    dispatch(clearAIError());
+    await dispatch(generateAIResponse(id)).unwrap();
+  };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'open': return '#3742fa';
-            case 'awaiting_response': return '#ffa502';
-            case 'resolved': return '#2ed573';
-            case 'closed': return '#747d8c';
-            default: return '#747d8c';
-        }
-    };
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+  if (!ticket) return <div>Ticket not found.</div>;
 
-    const getSenderBadgeColor = (sender) => {
-        switch (sender) {
-            case 'user': return '#3742fa';
-            case 'ai': return '#2ed573';
-            case 'admin': return '#ff4757';
-            default: return '#747d8c';
-        }
-    };
+  return (
+    <div className="ticket-page">
+      <div className="breadcrumb">
+        <Link to="/dashboard">Dashboard</Link> / Ticket #{ticket._id.slice(-6)}
+      </div>
 
-    const formatSenderName = (sender) => {
-        switch (sender) {
-            case 'user': return 'You';
-            case 'ai': return 'AI Assistant';
-            case 'admin': return 'Support Agent';
-            default: return sender;
-        }
-    };
+      <div className="ticket-header">
+        <h1>{ticket.title}</h1>
+        {["admin", ticket.user._id].includes(user._id) && (
+          <select value={ticket.status} onChange={e => handleStatusUpdate(e.target.value)} disabled={statusUpdating}>
+            {["open","awaiting_response","resolved","closed"].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        )}
+      </div>
 
-    const getSenderIcon = (sender) => {
-        switch (sender) {
-            case 'user': return '👤';
-            case 'ai': return '🤖';
-            case 'admin': return '🛠️';
-            default: return '💬';
-        }
-    };
+      <div className="conversation">
+        <h3>Conversation ({messages.length})</h3>
+        {messages.map((msg) => (
+          <div key={msg._id} className="message">
+            <strong>{msg.sender.name}:</strong> {msg.message}
+            <div className="time">{new Date(msg.sentAt).toLocaleString()}</div>
+          </div>
+        ))}
+      </div>
 
-    if (loading) {
-        return (
-            <div className="ticket-container">
-                <div className="loading">
-                    <div className="spinner"></div>
-                    <p>Loading ticket details...</p>
-                </div>
-            </div>
-        );
-    }
+      {ticket.status !== 'closed' && (
+        <form onSubmit={handleAddMessage} className="message-form">
+          <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} required rows="3"/>
+          <button type="submit" disabled={submittingMessage}>{submittingMessage ? 'Sending…' : 'Send'}</button>
+        </form>
+      )}
 
-    if (error) {
-        return (
-            <div className="ticket-container">
-                <div className="error-page">
-                    <h2>Error</h2>
-                    <p>{error}</p>
-                    <Link to="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
-                </div>
-            </div>
-        );
-    }
-
-    if (!ticket) {
-        return (
-            <div className="ticket-container">
-                <div className="error-page">
-                    <h2>Ticket Not Found</h2>
-                    <p>The ticket you're looking for doesn't exist or you don't have permission to view it.</p>
-                    <Link to="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="ticket-container">
-            <div className="ticket-header">
-                <div className="breadcrumb">
-                    <Link to="/dashboard">Dashboard</Link>
-                    <span> / </span>
-                    <span>Ticket #{ticket._id?.slice(-6) || 'N/A'}</span>
-                </div>
-
-                <div className="ticket-actions">
-                    {(user?.role === 'admin' || user?.id === ticket.user?._id) && (
-                        <div className="status-action">
-                            <label>Status:</label>
-                            <select
-                                value={ticket.status || 'open'}
-                                onChange={(e) => handleStatusUpdate(e.target.value)}
-                                className="status-select"
-                                disabled={statusUpdating}
-                            >
-                                <option value="open">Open</option>
-                                <option value="awaiting_response">Awaiting Response</option>
-                                <option value="resolved">Resolved</option>
-                                <option value="closed">Closed</option>
-                            </select>
-                            {statusUpdating && <span className="updating-text">Updating...</span>}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="ticket-content">
-                <div className="ticket-details">
-                    <div className="ticket-title-section">
-                        <h1>{ticket.title}</h1>
-                        <div className="ticket-badges">
-                            <span className="priority-badge" style={{ backgroundColor: getPriorityColor(ticket.priority) }}>
-                                {ticket.priority || 'medium'} priority
-                            </span>
-                            <span className="status-badge" style={{ backgroundColor: getStatusColor(ticket.status) }}>
-                                {ticket.status || 'open'}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="ticket-meta">
-                        <div className="meta-item">
-                            <strong>Created by:</strong> {ticket.user?.name || 'Unknown'}
-                        </div>
-                        <div className="meta-item">
-                            <strong>Email:</strong> {ticket.user?.email || 'Unknown'}
-                        </div>
-                        <div className="meta-item">
-                            <strong>Created:</strong> {new Date(ticket.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="meta-item">
-                            <strong>Last updated:</strong> {new Date(ticket.updatedAt).toLocaleDateString()}
-                        </div>
-                    </div>
-
-                    <div className="ticket-description">
-                        <h3>Description</h3>
-                        <p>{ticket.description}</p>
-                    </div>
-                </div>
-
-                <div className="conversation-section">
-                    <h3>Conversation ({ticket.conversation?.length || 0})</h3>
-
-                    <div className="conversation-list">
-                        {ticket.conversation && ticket.conversation.length > 0 ? (
-                            ticket.conversation.map((message, index) => (
-                                <div key={index} className={`message ${message.sender}`}>
-                                    <div className="message-header">
-                                        <span
-                                            className="sender-badge"
-                                            style={{ backgroundColor: getSenderBadgeColor(message.sender) }}
-                                        >
-                                            {getSenderIcon(message.sender)} {formatSenderName(message.sender)}
-                                        </span>
-                                        <span className="message-time">
-                                            {new Date(message.sentAt).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <div className="message-content">
-                                        <p>{message.message}</p>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="no-messages">No messages yet.</p>
-                        )}
-                    </div>
-
-                    {ticket.status !== 'closed' && (
-                        <>
-                            <div className="ai-suggestion-box">
-                                <button 
-                                    onClick={handleAIResponse} 
-                                    className="btn btn-secondary" 
-                                    disabled={aiLoading}
-                                >
-                                    {aiLoading ? '🤖 Thinking...' : '🤖 Get AI Suggestion'}
-                                </button>
-                                {aiError && <p className="error-message">{aiError}</p>}
-                            </div>
-
-                            <form onSubmit={handleAddMessage} className="add-message-form">
-                                <textarea
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Type your message here..."
-                                    rows="3"
-                                    required
-                                    disabled={submittingMessage}
-                                />
-                                <button 
-                                    type="submit" 
-                                    disabled={submittingMessage || !newMessage.trim()} 
-                                    className="btn btn-primary"
-                                >
-                                    {submittingMessage ? 'Sending...' : 'Send Message'}
-                                </button>
-                            </form>
-                        </>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+      <div className="ai-suggestion">
+        <button onClick={handleAIResponse} disabled={aiLoading}>
+          {aiLoading ? 'Thinking…' : 'Get AI Response '}
+        </button>
+        {aiError && <div className="error">{aiError}</div>}
+      </div>
+    </div>
+  );
 };
 
 export default TicketPage;
+

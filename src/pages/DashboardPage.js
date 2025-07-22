@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from "../redux/authSlice";
-import AIChat from '../components/AIChat';  
+import AIChat from '../components/AIChat';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -21,13 +21,66 @@ const DashboardPage = () => {
         priority: 'medium',
     });
 
-    // fetch user's tickets
+    const [messageInputs, setMessageInputs] = useState({});
+    const [messageLoading, setMessageLoading] = useState({});
+
+    // Helper function to handle API responses with better debugging
+    const handleApiResponse = async (response, endpoint = 'unknown') => {
+        console.log(`API Response for ${endpoint}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            url: response.url
+        });
+
+        const contentType = response.headers.get('content-type');
+        
+        // Always get the response text first to avoid consuming the stream
+        const responseText = await response.text();
+        
+        if (!response.ok) {
+            console.error(`API Error for ${endpoint}:`, {
+                status: response.status,
+                statusText: response.statusText,
+                responseText: responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''),
+                contentType
+            });
+            
+            // Try to parse as JSON if content type suggests it
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    const errorData = JSON.parse(responseText);
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                } catch (parseError) {
+                    console.error('Failed to parse error response as JSON:', parseError);
+                    throw new Error(`Server error (${response.status}): ${response.statusText}`);
+                }
+            } else {
+                // If we get HTML instead of JSON, it's likely a server error
+                throw new Error(`Server error (${response.status}): Received HTML instead of JSON. Check server logs.`);
+            }
+        }
+        
+        // Check if response is JSON
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error(`Expected JSON but got ${contentType || 'unknown content type'} for ${endpoint}:`, responseText.substring(0, 500));
+            throw new Error(`Server returned non-JSON response (${contentType || 'unknown'})`);
+        }
+        
+        try {
+            return JSON.parse(responseText);
+        } catch (parseError) {
+            console.error(`Failed to parse JSON response for ${endpoint}:`, parseError);
+            console.error('Response text:', responseText.substring(0, 1000));
+            throw new Error('Invalid JSON response from server');
+        }
+    };
+
+    // Fetch user tickets
     useEffect(() => {
         const fetchUserTickets = async () => {
             try {
                 setLoading(true);
-                console.log('Fetching tickets with token:', token ? 'Token present' : 'No token');
-                
                 const response = await fetch('http://localhost:5000/api/v1/tickets/my-tickets', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -35,16 +88,9 @@ const DashboardPage = () => {
                     },
                 });
 
-                console.log('Fetch tickets response status:', response.status);
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Fetched tickets data:', data);
-                    setTickets(Array.isArray(data.tickets) ? data.tickets : []);
-                } else {
-                    console.error('Failed to fetch tickets, status:', response.status);
-                    setError('Failed to fetch tickets');
-                }
+                const data = await handleApiResponse(response, 'my-tickets');
+                setTickets(Array.isArray(data.tickets) ? data.tickets : []);
+                setError(null);
             } catch (err) {
                 console.error('Error fetching tickets:', err);
                 setError('Error fetching tickets: ' + err.message);
@@ -57,44 +103,56 @@ const DashboardPage = () => {
 
     const handleCreateTicket = async (e) => {
         e.preventDefault();
-
         try {
-            console.log('Using token:', token ? 'Token present' : 'No token');
-            console.log('Creating ticket:', newTicket);
-            
             const response = await fetch('http://localhost:5000/api/v1/tickets', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
-                }, 
+                },
                 body: JSON.stringify(newTicket)
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-
-            if (response.ok) {
-                const responseData = await response.json();
-                console.log('Full response data:', responseData);
-                
-                const createdTicket = responseData.ticket || responseData.data || responseData;
-                console.log('Created ticket:', createdTicket);
-                
-                setTickets([createdTicket, ...(tickets || [])]);
-                setNewTicket({ title: '', description: '', priority: 'medium' });
-                setShowCreateForm(false);
-                setError(null); // Clear previous errors
-                
-                console.log('Ticket created successfully!');
-            } else {
-                const errorData = await response.json();
-                console.error('Error response:', errorData);
-                setError(errorData.message || `Failed to create ticket (Status: ${response.status})`);
-            } 
+            const responseData = await handleApiResponse(response, 'create-ticket');
+            const createdTicket = responseData.ticket || responseData;
+            setTickets([createdTicket, ...(tickets || [])]);
+            setNewTicket({ title: '', description: '', priority: 'medium' });
+            setShowCreateForm(false);
+            setError(null);
         } catch (err) {
-            console.error('Network/Fetch error:', err);
-            setError('Network error creating ticket: ' + err.message);
+            console.error('Error creating ticket:', err);
+            setError('Error creating ticket: ' + err.message);
+        }
+    };
+
+    const handleSendMessage = async (ticketId) => {
+        const message = messageInputs[ticketId]?.trim();
+        if (!message) return;
+
+        setMessageLoading(prev => ({ ...prev, [ticketId]: true }));
+
+        try {
+            const response = await fetch('http://localhost:5000/api/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    ticketId,
+                    message
+                })
+            });
+
+            await handleApiResponse(response, 'send-message');
+            setMessageInputs(prev => ({ ...prev, [ticketId]: '' }));
+            setError(null);
+            // Optional: You might want to show a success message or refresh ticket data
+        } catch (err) {
+            console.error('Error sending message:', err);
+            setError('Message send failed: ' + err.message);
+        } finally {
+            setMessageLoading(prev => ({ ...prev, [ticketId]: false }));
         }
     };
 
@@ -122,13 +180,11 @@ const DashboardPage = () => {
         }
     };
 
-    // AI Chat handlers
     const handleAIHelp = () => {
         setShowAIChat(!showAIChat);
     };
 
     const handleAITicketSuggestion = (suggestion) => {
-        // Use AI suggestion to pre-fill ticket form
         setNewTicket({
             title: suggestion.title || '',
             description: suggestion.description || '',
@@ -139,11 +195,7 @@ const DashboardPage = () => {
     };
 
     if (loading) {
-        return (
-            <div className="dashboard-container">
-                <div className="loading">Loading your tickets...</div>
-            </div>
-        );
+        return <div className="dashboard-container"><div className="loading">Loading your tickets...</div></div>;
     }
 
     return (
@@ -164,17 +216,11 @@ const DashboardPage = () => {
                 </div>
             </div>
 
-            {error && (
-                <div className="error-message">
-                    {error} 
-                    <button onClick={() => setError(null)}>×</button>
-                </div>
-            )}
+            {error && <div className="error-message">{error} <button onClick={() => setError(null)}>×</button></div>}
 
-            {/* AI Chat Component */}
             {showAIChat && (
                 <div className="ai-chat-container">
-                    <AIChat 
+                    <AIChat
                         user={user}
                         tickets={tickets}
                         onTicketSuggestion={handleAITicketSuggestion}
@@ -199,96 +245,91 @@ const DashboardPage = () => {
                         <form onSubmit={handleCreateTicket}>
                             <div className="form-group">
                                 <label htmlFor="title">Title</label>
-                                <input 
+                                <input
                                     type="text"
                                     id="title"
                                     value={newTicket.title}
-                                    onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
+                                    onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
                                     required
-                                    placeholder="Brief description of your issue"
                                 />
                             </div>
-
                             <div className="form-group">
                                 <label htmlFor="description">Description</label>
-                                <textarea 
+                                <textarea
                                     id="description"
                                     value={newTicket.description}
-                                    onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
+                                    onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
                                     required
-                                    rows="4"
-                                    placeholder="Detailed description of your issue"
                                 />
                             </div>
-
                             <div className="form-group">
                                 <label htmlFor="priority">Priority</label>
-                                <select 
+                                <select
                                     id="priority"
                                     value={newTicket.priority}
-                                    onChange={(e) => setNewTicket({...newTicket, priority: e.target.value})}
+                                    onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
                                 >
                                     <option value="low">Low</option>
                                     <option value="medium">Medium</option>
                                     <option value="high">High</option>
                                 </select>
                             </div>
-
                             <div className="form-actions">
-                                <button type="submit" className="btn btn-primary">
-                                    Create Ticket
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowCreateForm(false)}
-                                    className="btn btn-secondary"
-                                >
-                                    Cancel
-                                </button>
+                                <button type="submit" className="btn btn-primary">Create Ticket</button>
                             </div>
                         </form>
                     </div>
                 )}
 
                 <div className="tickets-list">
-                    {!tickets || tickets.length === 0 ? (
+                    {(!tickets || tickets.length === 0) ? (
                         <div className="no-tickets">
                             <h3>No tickets yet</h3>
                             <p>Create your first support ticket to get started.</p>
-                            <button onClick={handleAIHelp} className="btn btn-ai-help">
-                                Need help getting started? Ask our AI assistant
-                            </button>
                         </div>
                     ) : (
-                        tickets.map((ticket, index) => ( 
-                            <div key={ticket._id || ticket.id || index} className="ticket-card">
+                        tickets.map((ticket) => (
+                            <div key={ticket._id} className="ticket-card">
                                 <div className="ticket-header">
                                     <h3>
-                                        <Link to={`/tickets/${ticket._id || ticket.id}`}>
-                                            {ticket.title}
-                                        </Link>
+                                        <Link to={`/tickets/${ticket._id}`}>{ticket.title}</Link>
                                     </h3>
                                     <div className="ticket-meta">
                                         <span className="priority-badge" style={{ backgroundColor: getPriorityColor(ticket.priority) }}>
                                             {ticket.priority}
                                         </span>
-                                        <span className="status-badge" style={{backgroundColor: getStatusColor(ticket.status) }}>
+                                        <span className="status-badge" style={{ backgroundColor: getStatusColor(ticket.status) }}>
                                             {ticket.status || 'open'}
                                         </span>
                                     </div>
                                 </div>
-
-                                <p className="ticket-description">
-                                    {ticket.description?.length > 100 ? `${ticket.description.substring(0, 100)}...` : ticket.description}
-                                </p>
-
+                                <p className="ticket-description">{ticket.description}</p>
                                 <div className="ticket-footer">
-                                    <span className="ticket-date">
-                                        Created: {ticket.createdAt || ticket.created_at ? new Date(ticket.createdAt || ticket.created_at).toLocaleDateString() : 'N/A'}
-                                    </span>
-                                    <Link to={`/tickets/${ticket._id || ticket.id}`} className="btn btn-small">
-                                        View Details
-                                    </Link>
+                                    <span className="ticket-date">Created: {new Date(ticket.createdAt).toLocaleDateString()}</span>
+                                    <Link to={`/tickets/${ticket._id}`} className="btn btn-small">View Details</Link>
+                                </div>
+
+                                {/* FIX: Removed unnecessary key prop - the parent div already has the key */}
+                                <div className="message-input-section">
+                                    <textarea
+                                        rows="2"
+                                        placeholder="Write a message..."
+                                        value={messageInputs[ticket._id] || ''}
+                                        onChange={(e) =>
+                                            setMessageInputs(prev => ({
+                                                ...prev,
+                                                [ticket._id]: e.target.value
+                                            }))
+                                        }
+                                        disabled={messageLoading[ticket._id]}
+                                    />
+                                    <button
+                                        onClick={() => handleSendMessage(ticket._id)}
+                                        disabled={messageLoading[ticket._id]}
+                                        className="btn btn-small"
+                                    >
+                                        {messageLoading[ticket._id] ? 'Sending...' : 'Send'}
+                                    </button>
                                 </div>
                             </div>
                         ))
